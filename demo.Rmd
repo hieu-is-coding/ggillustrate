@@ -1,0 +1,83 @@
+---
+title: "ggilustrate"
+author: "Pham Minh Hieu"
+date: "2025-05-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+---
+```{r}
+
+```
+
+```{r}
+library(ggplot2)
+library(reticulate)
+library(dotenv)
+
+# Load .env file
+dotenv::load_dot_env(file = ".env")
+api_key <- Sys.getenv("REPLICATE_API_TOKEN")
+
+# Ensure reticulate uses the correct Python environment
+use_virtualenv("./venv", required = TRUE)
+py_config()
+
+# Import Python utility functions
+script_dir <- getwd() 
+utils <- import_from_path("utils", path = script_dir)
+
+# Define file paths
+plot_path <- "my_plot.png"
+sketch_path <- "my_sketch.png"
+
+# Define the prompt for the AI illustration
+illustration_prompt <- "A vibrant, artistic representation of car efficiency trends, perhaps using stylized vehicles or abstract energy flows."
+
+# --- 1. Create and Save ggplot --- 
+print("Creating ggplot...")
+data(mtcars) # Use the built-in mtcars dataset
+
+p <- ggplot(mtcars, aes(x = wt, y = mpg, color = factor(cyl))) +
+  geom_point(size = 3) +
+  labs(title = "Car Weight vs. MPG by Cylinders",
+       x = "Weight (1000 lbs)",
+       y = "Miles per Gallon (MPG)",
+       color = "Cylinders") +
+  theme_minimal()
+
+print(paste("Saving plot to:", plot_path))
+ggsave(plot_path, plot = p, width = 6, height = 4, dpi = 150)
+
+# --- 2. Generate Sketch using Python/OpenCV --- 
+print("Generating sketch from plot...")
+sketch_file <- utils$detect_edges(plot_path, sketch_path)
+
+if (!is.null(sketch_file)) {
+  print(paste("Sketch generated:", sketch_file))
+  
+  # --- 3. Generate Illustration using Python/Replicate --- 
+  print("Generating AI illustration from sketch...")
+  illustration_url <- utils$generate_illustration(sketch_file, illustration_prompt)
+  
+  if (!is.null(illustration_url)) {
+    print(paste("Illustration generated! URL:", illustration_url))
+    # You can open the URL in a browser or download the image
+    # browseURL(illustration_url) 
+  } else {
+    print("Failed to generate illustration.")
+  }
+} else {
+  print("Failed to generate sketch.")
+}
+
+print("Demo script finished.")
+
+
+```
+
+
